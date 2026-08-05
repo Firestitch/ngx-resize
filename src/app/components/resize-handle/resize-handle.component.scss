@@ -1,10 +1,10 @@
 // A splitter, not a rail.
 //
-// The handle is absolutely positioned on the boundary between the two panels, so
-// it costs the layout nothing at all — the panels meet edge to edge and the line
-// is painted over the seam. The two things that make a 1px line usable, a grab
-// zone wide enough to hit and a highlight thick enough to see, are painted
-// outside the box as well, so they borrow their pixels from the neighbours.
+// The handle is absolutely positioned on the boundary it controls, so it costs
+// the layout nothing at all — the boxes meet edge to edge and the line is painted
+// over the seam. The two things that make a 1px line usable, a grab zone wide
+// enough to hit and a highlight thick enough to see, are painted outside the box
+// as well, so they borrow their pixels from the neighbours.
 //
 // Colors are custom properties with neutral defaults, so the package works with
 // no setup and an app restyles it from its own layer rather than by patching
@@ -18,51 +18,27 @@
   --fs-resize-handle-hover-delay: 150ms;
 
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: var(--fs-resize-handle-size);
-  // Centred on the seam rather than sitting inside the panel after it, so the
-  // line does not look like it belongs to one side.
-  transform: translateX(-50%);
   background: var(--fs-resize-handle-color);
-  cursor: col-resize;
   user-select: none;
   touch-action: none;
 
-  // Paints, and so hit-tests, above both panels. Without this the pseudos below
-  // reach across their neighbours but sit under them: the highlight is hidden
-  // and the grab zone is dead.
+  // Paints, and so hit-tests, above whatever it divides. Without this the
+  // pseudos below reach across their neighbours but sit under them: the
+  // highlight is hidden and the grab zone is dead.
   z-index: 2;
-
-  &:focus-visible {
-    outline: none;
-
-    &::after {
-      opacity: 1;
-    }
-  }
 
   // The grab zone. Events on a pseudo-element target the element that owns it,
   // so the component's own pointerdown already receives these — no hit-testing.
   &::before {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(var(--fs-resize-handle-slop) * -1);
-    right: calc(var(--fs-resize-handle-slop) * -1);
   }
 
   // The highlight: the line itself plus 1px of bleed either side. Bleeding
-  // symmetrically is what keeps it from looking like it grew toward one panel.
+  // symmetrically is what keeps it from looking like it grew toward one side.
   &::after {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -1px;
-    right: -1px;
     background: var(--fs-resize-handle-active-color);
     opacity: 0;
     // No delay here, so leaving is immediate. The delay is added back on hover
@@ -83,29 +59,13 @@
     transition-delay: 0ms;
   }
 
-  // Stacked panels: the same bar turned through 90 degrees.
-  &.fs-resize-handle-vertical {
-    top: 0;
-    right: 0;
-    bottom: auto;
-    left: 0;
-    width: auto;
-    height: var(--fs-resize-handle-size);
-    transform: translateY(-50%);
-    cursor: row-resize;
-
-    &::before {
-      top: calc(var(--fs-resize-handle-slop) * -1);
-      bottom: calc(var(--fs-resize-handle-slop) * -1);
-      left: 0;
-      right: 0;
-    }
+  // Keyboard focus only — a mouse press never focuses the handle, precisely so
+  // this treatment does not survive the button coming back up.
+  &:focus-visible {
+    outline: none;
 
     &::after {
-      top: -1px;
-      bottom: -1px;
-      left: 0;
-      right: 0;
+      opacity: 1;
     }
   }
 
@@ -113,6 +73,74 @@
     cursor: default;
     pointer-events: none;
   }
+}
+
+// Dragged left and right: a vertical bar spanning the full height.
+.fs-resize-handle-left,
+.fs-resize-handle-right {
+  top: 0;
+  bottom: 0;
+  width: var(--fs-resize-handle-size);
+  cursor: col-resize;
+
+  &::before {
+    top: 0;
+    bottom: 0;
+    left: calc(var(--fs-resize-handle-slop) * -1);
+    right: calc(var(--fs-resize-handle-slop) * -1);
+  }
+
+  &::after {
+    top: 0;
+    bottom: 0;
+    left: -1px;
+    right: -1px;
+  }
+}
+
+// Centred on the seam rather than sitting inside the box after it, so the line
+// does not look like it belongs to one side.
+.fs-resize-handle-left {
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.fs-resize-handle-right {
+  right: 0;
+  transform: translateX(50%);
+}
+
+// Dragged up and down: the same bar turned through 90 degrees.
+.fs-resize-handle-top,
+.fs-resize-handle-bottom {
+  left: 0;
+  right: 0;
+  height: var(--fs-resize-handle-size);
+  cursor: row-resize;
+
+  &::before {
+    left: 0;
+    right: 0;
+    top: calc(var(--fs-resize-handle-slop) * -1);
+    bottom: calc(var(--fs-resize-handle-slop) * -1);
+  }
+
+  &::after {
+    left: 0;
+    right: 0;
+    top: -1px;
+    bottom: -1px;
+  }
+}
+
+.fs-resize-handle-top {
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.fs-resize-handle-bottom {
+  bottom: 0;
+  transform: translateY(50%);
 }
 
 // A drag is tracked through pointer capture, so the pointer spends most of it
@@ -129,7 +157,6 @@ body.fs-resize-resizing {
   cursor: col-resize;
 }
 
-// Stacked panels drag the other way, so the cursor has to say so.
 body.fs-resize-resizing-row {
   cursor: row-resize;
 }

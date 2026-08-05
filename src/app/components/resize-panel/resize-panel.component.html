@@ -2,7 +2,7 @@
      nothing before it to resize against, and on a panel marked non-resizable. -->
 @if (hasHandle()) {
   <fs-resize-handle
-      [orientation]="container.orientation()"
+      [placement]="container.orientation() === 'horizontal' ? 'left' : 'top'"
       [disabled]="container.disabled()"
       [step]="container.step()"
       [label]="label()"

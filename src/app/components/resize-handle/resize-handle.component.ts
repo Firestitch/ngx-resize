@@ -12,7 +12,11 @@ import {
   output,
 } from '@angular/core';
 
-import { FsResizeOrientation } from '../../types/resize-orientation.type';
+import {
+  FsResizeEdge,
+  FsResizeOrientation,
+  resizeEdgeOrientation,
+} from '../../types/resize-orientation.type';
 
 
 /**
@@ -23,19 +27,20 @@ import { FsResizeOrientation } from '../../types/resize-orientation.type';
  */
 const RESIZING_CLASS = 'fs-resize-resizing';
 
-/** Added alongside it for a vertical layout, where the cursor is `row-resize`. */
+/** Added alongside it for a vertical drag, where the cursor is `row-resize`. */
 const ROW_RESIZING_CLASS = 'fs-resize-resizing-row';
 
-/** Home/End run the handle to the far end and let the container clamp it. */
+/** Home/End run the handle to the far end and let the caller clamp it. */
 const TO_THE_END = Number.MAX_SAFE_INTEGER;
 
 
 /**
- * The draggable boundary between two panels.
+ * The draggable edge of a box.
  *
- * Rendered by the panel that sits after it, never written by hand — see
- * `FsResizePanelComponent`. It reports movement as a pixel delta from where the
- * drag started and knows nothing about panel sizes; the container owns that.
+ * Never written by hand. A panel renders one on the edge that faces its
+ * neighbour, and `[fsResizeEdge]` renders one on the outside of a lone element.
+ * It reports movement as a pixel delta from where the drag started and knows
+ * nothing about sizes; whatever created it owns that.
  */
 @Component({
   selector: 'fs-resize-handle',
@@ -50,7 +55,13 @@ const TO_THE_END = Number.MAX_SAFE_INTEGER;
   host: {
     'class': 'fs-resize-handle',
     'role': 'separator',
-    '[class.fs-resize-handle-vertical]': 'orientation() === \'vertical\'',
+    // One binding per placement rather than `[class]="'…-' + placement()"`,
+    // which replaces the whole class list and would wipe both the base class
+    // and the resizing class the drag adds imperatively.
+    '[class.fs-resize-handle-left]': 'placement() === \'left\'',
+    '[class.fs-resize-handle-right]': 'placement() === \'right\'',
+    '[class.fs-resize-handle-top]': 'placement() === \'top\'',
+    '[class.fs-resize-handle-bottom]': 'placement() === \'bottom\'',
     '[attr.tabindex]': 'disabled() ? null : 0',
     '[attr.aria-orientation]': 'ariaOrientation()',
     '[attr.aria-valuenow]': 'valueNow()',
@@ -65,28 +76,34 @@ const TO_THE_END = Number.MAX_SAFE_INTEGER;
 })
 export class FsResizeHandleComponent implements OnDestroy {
 
-  public orientation = input<FsResizeOrientation>('horizontal');
+  /** Which side of its box this handle sits on. */
+  public placement = input<FsResizeEdge>('left');
+
   public disabled = input<boolean>(false);
   public step = input<number>(10);
-  public label = input<string>('Resize panel');
+  public label = input<string>('Resize');
 
-  /** Live size of the panel this handle resizes, for `role="separator"`. */
+  /** Live size of whatever this handle resizes, for `role="separator"`. */
   public valueNow = input<number>(0);
   public valueMin = input<number>(0);
   public valueMax = input<number>(0);
 
   public resizeStart = output<void>();
 
-  /** Pixels moved along the container's axis since `resizeStart`. */
+  /** Pixels moved along the drag axis since `resizeStart`. */
   public resize = output<number>();
 
   public resizeEnd = output<void>();
   public reset = output<void>();
 
+  public orientation = computed<FsResizeOrientation>(
+    () => resizeEdgeOrientation(this.placement()),
+  );
+
   /**
-   * ARIA names the separator, not the layout it sits in: panels side by side are
-   * divided by a VERTICAL bar. `role="separator"` defaults to horizontal, so this
-   * has to be stated either way round.
+   * ARIA names the separator, not the layout it sits in: boxes side by side are
+   * divided by a VERTICAL bar. `role="separator"` defaults to horizontal, so
+   * this has to be stated either way round.
    */
   public ariaOrientation = computed<FsResizeOrientation>(
     () => this.orientation() === 'horizontal' ? 'vertical' : 'horizontal',
@@ -103,7 +120,7 @@ export class FsResizeHandleComponent implements OnDestroy {
 
   /**
    * A drag can be interrupted by the handle being removed — a collapsed section,
-   * a closed dialog — which never fires pointerup and would leave the page
+   * a closed drawer — which never fires pointerup and would leave the page
    * pinned to a resize cursor with nothing left to clear it.
    */
   public ngOnDestroy(): void {
@@ -141,8 +158,8 @@ export class FsResizeHandleComponent implements OnDestroy {
     this.resizeStart.emit();
 
     // Outside Angular: a drag fires pointermove at screen rate, and each one
-    // would otherwise run a change detection pass. The container applies the new
-    // size to the DOM directly, so nothing here needs one.
+    // would otherwise run a change detection pass. The new size is applied to
+    // the DOM directly, so nothing here needs one.
     this._ngZone.runOutsideAngular(() => {
       this._element.addEventListener('pointermove', this._moveHandler);
       this._element.addEventListener('pointerup', this._endHandler);
@@ -150,19 +167,10 @@ export class FsResizeHandleComponent implements OnDestroy {
     });
   }
 
-  private _pointerMove(event: PointerEvent): void {
-    this.resize.emit(this._axisPosition(event) - this._origin);
-  }
-
-  private _pointerUp(): void {
-    this._stopDragging();
-    this._ngZone.run(() => this.resizeEnd.emit());
-  }
-
   /**
-   * Arrow keys nudge, Home/End run to the panel's limits, Enter restores the
-   * declared size. Each one is a whole gesture, so it opens and closes the same
-   * start/move/end the pointer does and the container needs no separate path.
+   * Arrow keys nudge, Home/End run to the limits, Enter restores the declared
+   * size. Each one is a whole gesture, so it opens and closes the same
+   * start/move/end the pointer does and the caller needs no separate path.
    */
   protected _keyDown(event: KeyboardEvent): void {
     if (this.disabled()) {
@@ -184,12 +192,21 @@ export class FsResizeHandleComponent implements OnDestroy {
       default: return;
     }
 
-    // Otherwise the arrows scroll the panel behind the handle at the same time.
+    // Otherwise the arrows scroll whatever is behind the handle at the same time.
     event.preventDefault();
 
     this.resizeStart.emit();
     this.resize.emit(delta);
     this.resizeEnd.emit();
+  }
+
+  private _pointerMove(event: PointerEvent): void {
+    this.resize.emit(this._axisPosition(event) - this._origin);
+  }
+
+  private _pointerUp(): void {
+    this._stopDragging();
+    this._ngZone.run(() => this.resizeEnd.emit());
   }
 
   private _axisPosition(event: PointerEvent): number {
@@ -211,8 +228,8 @@ export class FsResizeHandleComponent implements OnDestroy {
 
   private _setResizing(resizing: boolean): void {
     if (!resizing) {
-      // Both come off unconditionally. Clearing only the one this orientation
-      // added would strand the other if the orientation changed mid-drag.
+      // Both come off unconditionally. Clearing only the one this axis added
+      // would strand the other if the placement changed mid-drag.
       this._renderer.removeClass(this._element, RESIZING_CLASS);
       this._renderer.removeClass(document.body, RESIZING_CLASS);
       this._renderer.removeClass(document.body, ROW_RESIZING_CLASS);
@@ -223,8 +240,8 @@ export class FsResizeHandleComponent implements OnDestroy {
     this._renderer.addClass(this._element, RESIZING_CLASS);
     this._renderer.addClass(document.body, RESIZING_CLASS);
 
-    // Stacked panels drag up and down, so the cursor pinned to the page for the
-    // duration has to be the other one.
+    // A vertical drag goes up and down, so the cursor pinned to the page for
+    // the duration has to be the other one.
     if (this.orientation() === 'vertical') {
       this._renderer.addClass(document.body, ROW_RESIZING_CLASS);
     }
