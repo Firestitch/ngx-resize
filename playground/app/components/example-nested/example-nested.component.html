@@ -1,0 +1,39 @@
+<fs-resize class="nested">
+
+  <fs-resize-panel
+      [size]="220"
+      [min]="140"
+      label="Resize files">
+    <div class="pane">
+      <h4>Files</h4>
+      <p class="hint">Fixed rail.</p>
+    </div>
+  </fs-resize-panel>
+
+  <!-- The panel is an ordinary box, so it holds a whole second layout. The
+       inner container needs no height of its own — the panel stretches it. -->
+  <fs-resize-panel [min]="260">
+    <fs-resize
+        class="inner"
+        orientation="vertical">
+
+      <fs-resize-panel [min]="80">
+        <div class="pane">
+          <h4>Editor</h4>
+          <p class="hint">Drag either seam — they do not know about each other.</p>
+        </div>
+      </fs-resize-panel>
+
+      <fs-resize-panel
+          [size]="100"
+          [min]="50"
+          label="Resize problems">
+        <div class="pane">
+          <h4>Problems</h4>
+        </div>
+      </fs-resize-panel>
+
+    </fs-resize>
+  </fs-resize-panel>
+
+</fs-resize>

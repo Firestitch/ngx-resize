@@ -1,0 +1,19 @@
+.fs-resize {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  box-sizing: border-box;
+
+  // No gap. The panels meet edge to edge and the handle is painted over the
+  // seam, which is what lets it cost the layout nothing.
+  gap: 0;
+
+  // Same reasoning as on the panel: without this a wide child holds the whole
+  // row open and pushes it out of whatever contains it.
+  min-width: 0;
+  min-height: 0;
+
+  &.fs-resize-vertical {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,24 @@
+<!-- The seam in front of this panel. Absent on the first panel, which has
+     nothing before it to resize against, and on a panel marked non-resizable. -->
+@if (hasHandle()) {
+  <fs-resize-handle
+      [orientation]="container.orientation()"
+      [disabled]="container.disabled()"
+      [step]="container.step()"
+      [label]="label()"
+      [valueNow]="aria().now"
+      [valueMin]="aria().min"
+      [valueMax]="aria().max"
+      (resizeStart)="container.dragStart(this)"
+      (resize)="container.dragMove(this, $event)"
+      (resizeEnd)="container.dragEnd()"
+      (reset)="container.dragReset(this)">
+  </fs-resize-handle>
+}
+
+<!-- The content scrolls in here rather than on the host, because the handle is
+     absolutely positioned against the host — inside a scroll container it would
+     scroll away from the seam it marks. -->
+<div class="fs-resize-panel-content">
+  <ng-content></ng-content>
+</div>

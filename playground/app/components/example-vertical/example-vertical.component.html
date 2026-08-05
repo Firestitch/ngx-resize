@@ -1,0 +1,23 @@
+<fs-resize
+    class="stacked"
+    orientation="vertical">
+
+  <fs-resize-panel [min]="80">
+    <div class="pane">
+      <h4>Output</h4>
+      <p class="hint">Flexible — takes whatever the drawer below leaves.</p>
+    </div>
+  </fs-resize-panel>
+
+  <fs-resize-panel
+      [size]="120"
+      [min]="60"
+      [max]="240"
+      label="Resize terminal">
+    <div class="pane">
+      <h4>Terminal</h4>
+      <p class="hint">Fixed at 120px tall, between 60 and 240.</p>
+    </div>
+  </fs-resize-panel>
+
+</fs-resize>

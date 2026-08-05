@@ -1,0 +1,32 @@
+<fs-resize
+    class="workspace"
+    persist="playground-workspace"
+    (sizesChange)="sizes.set($event)">
+
+  <fs-resize-panel
+      [size]="260"
+      [min]="180"
+      [max]="480"
+      label="Resize screens">
+    <div class="pane">
+      <h4>Screens</h4>
+      @for (screen of screens; track screen) {
+        <div class="screen">{{ screen }}</div>
+      }
+    </div>
+  </fs-resize-panel>
+
+  <!-- No size, so this one absorbs whatever the rail leaves — including every
+       pixel the window gains or loses. -->
+  <fs-resize-panel [min]="320">
+    <div class="pane">
+      <h4>Preview</h4>
+      <p class="hint">
+        Drag the seam on the left. Or focus it with Tab and use the arrow keys,
+        Home, End, and Enter to put it back.
+      </p>
+      <p class="hint">Sizes: {{ sizes().join(' / ') || 'drag to see them' }}</p>
+    </div>
+  </fs-resize-panel>
+
+</fs-resize>

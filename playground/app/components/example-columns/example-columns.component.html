@@ -1,0 +1,30 @@
+<fs-resize class="columns">
+
+  <fs-resize-panel
+      [size]="200"
+      [min]="120"
+      label="Resize tree">
+    <div class="pane">
+      <h4>Tree</h4>
+      <p class="hint">Fixed, 200px to start.</p>
+    </div>
+  </fs-resize-panel>
+
+  <fs-resize-panel [min]="200">
+    <div class="pane">
+      <h4>Editor</h4>
+      <p class="hint">Flexible — gives up the space both seams take.</p>
+    </div>
+  </fs-resize-panel>
+
+  <fs-resize-panel
+      [size]="220"
+      [min]="140"
+      label="Resize inspector">
+    <div class="pane">
+      <h4>Inspector</h4>
+      <p class="hint">Fixed, 220px to start.</p>
+    </div>
+  </fs-resize-panel>
+
+</fs-resize>

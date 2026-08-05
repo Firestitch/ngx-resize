@@ -1,0 +1,23 @@
+:host {
+  // The handle in front of this panel is positioned against this box.
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+
+  // A flex item defaults to `min-width: auto` (= min-content), which lets a wide
+  // child — a <pre>, an iframe, a long unbroken string — hold the panel open
+  // past the size it was given and push the rest of the layout off the end.
+  min-width: 0;
+  min-height: 0;
+
+  // Not `auto`: the handle bleeds its grab zone and highlight outside this box,
+  // and a scroll container here would clip both.
+  overflow: visible;
+}
+
+.fs-resize-panel-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}

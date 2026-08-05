@@ -1,0 +1,139 @@
+// A splitter, not a rail.
+//
+// The handle is absolutely positioned on the boundary between the two panels, so
+// it costs the layout nothing at all — the panels meet edge to edge and the line
+// is painted over the seam. The two things that make a 1px line usable, a grab
+// zone wide enough to hit and a highlight thick enough to see, are painted
+// outside the box as well, so they borrow their pixels from the neighbours.
+//
+// Colors are custom properties with neutral defaults, so the package works with
+// no setup and an app restyles it from its own layer rather than by patching
+// this file.
+.fs-resize-handle {
+  --fs-resize-handle-size: 1px;
+  --fs-resize-handle-slop: 7px;
+  --fs-resize-handle-color: #dcdcdc;
+  --fs-resize-handle-active-color: #2196f3;
+  --fs-resize-handle-fade: 100ms;
+  --fs-resize-handle-hover-delay: 150ms;
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--fs-resize-handle-size);
+  // Centred on the seam rather than sitting inside the panel after it, so the
+  // line does not look like it belongs to one side.
+  transform: translateX(-50%);
+  background: var(--fs-resize-handle-color);
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+
+  // Paints, and so hit-tests, above both panels. Without this the pseudos below
+  // reach across their neighbours but sit under them: the highlight is hidden
+  // and the grab zone is dead.
+  z-index: 2;
+
+  &:focus-visible {
+    outline: none;
+
+    &::after {
+      opacity: 1;
+    }
+  }
+
+  // The grab zone. Events on a pseudo-element target the element that owns it,
+  // so the component's own pointerdown already receives these — no hit-testing.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--fs-resize-handle-slop) * -1);
+    right: calc(var(--fs-resize-handle-slop) * -1);
+  }
+
+  // The highlight: the line itself plus 1px of bleed either side. Bleeding
+  // symmetrically is what keeps it from looking like it grew toward one panel.
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -1px;
+    right: -1px;
+    background: var(--fs-resize-handle-active-color);
+    opacity: 0;
+    // No delay here, so leaving is immediate. The delay is added back on hover
+    // below; declared once here it would also make the line linger.
+    transition: opacity var(--fs-resize-handle-fade) ease;
+  }
+
+  &:hover::after {
+    opacity: 1;
+    transition-delay: var(--fs-resize-handle-hover-delay);
+  }
+
+  // A drag outruns the grab zone, `:hover` drops, and the line would blink out
+  // from under the cursor. This must stay below the `:hover` rule: the two score
+  // the same specificity and this one has to win the delay.
+  &.fs-resize-resizing::after {
+    opacity: 1;
+    transition-delay: 0ms;
+  }
+
+  // Stacked panels: the same bar turned through 90 degrees.
+  &.fs-resize-handle-vertical {
+    top: 0;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: auto;
+    height: var(--fs-resize-handle-size);
+    transform: translateY(-50%);
+    cursor: row-resize;
+
+    &::before {
+      top: calc(var(--fs-resize-handle-slop) * -1);
+      bottom: calc(var(--fs-resize-handle-slop) * -1);
+      left: 0;
+      right: 0;
+    }
+
+    &::after {
+      top: -1px;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+    }
+  }
+
+  &[aria-disabled='true'] {
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+// A drag is tracked through pointer capture, so the pointer spends most of it
+// well off the handle and over the page — where it picks up whatever cursor
+// lives there and selects text as it sweeps across. Pin both for the duration.
+// The `*` is deliberate: buttons, links and inputs set their own cursor and
+// would otherwise win.
+body.fs-resize-resizing,
+body.fs-resize-resizing * {
+  user-select: none !important;
+}
+
+body.fs-resize-resizing {
+  cursor: col-resize;
+}
+
+// Stacked panels drag the other way, so the cursor has to say so.
+body.fs-resize-resizing-row {
+  cursor: row-resize;
+}
+
+body.fs-resize-resizing * {
+  cursor: inherit !important;
+}

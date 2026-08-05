@@ -1,0 +1,13 @@
+{
+  "extends": "./node_modules/@firestitch/component-tools/config/tsconfig.cli.json",
+  "compilerOptions": {
+    "paths": {
+      "@firestitch/resize": [
+        "src/public_api.ts"
+      ],
+      "@env": [
+        "playground/environments/environment.ts"
+      ]
+    }
+  }
+}
