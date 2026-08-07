@@ -1,11 +1,14 @@
 import {
+  ApplicationRef,
   Directive,
   ElementRef,
+  EnvironmentInjector,
+  Injector,
   OnDestroy,
   OnInit,
   Renderer2,
-  ViewContainerRef,
   computed,
+  createComponent,
   effect,
   inject,
   input,
@@ -80,22 +83,40 @@ export class FsResizeEdgeDirective implements OnInit, OnDestroy {
 
   private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
   private _renderer = inject(Renderer2);
-  private _viewContainerRef = inject(ViewContainerRef);
+  private _appRef = inject(ApplicationRef);
 
   // Optional injection so an element that never sets `persist` does not have to
   // provide FsStoreModule.
   private _store = inject(FsStore, { optional: true });
 
-  private _handle = this._viewContainerRef.createComponent(FsResizeHandleComponent);
+  // Created detached and placed by hand, NOT through the host's
+  // ViewContainerRef. Asking an ELEMENT for a ViewContainerRef turns its node
+  // into a view container whose anchor comment is written OUTSIDE the element,
+  // beside it in the parent — and from then on Angular re-inserts every view in
+  // that container at the anchor whenever it reapplies the node. Projection is
+  // the common case and it runs after this constructor, so a handle appended
+  // into the host here was pulled straight back out again: `<mat-sidenav>` is
+  // projected by `<mat-sidenav-container>`, and the handle landed beside it in
+  // the drawer container, where `right: 0` put the grab strip at the far edge
+  // of the page while it went on resizing the nav.
+  private _handle = createComponent(FsResizeHandleComponent, {
+    environmentInjector: inject(EnvironmentInjector),
+    elementInjector: inject(Injector),
+  });
+
   private _orientation = computed(() => resizeEdgeOrientation(this.edge()));
   private _startSize = 0;
 
   constructor() {
-    // Created as a sibling by the view container, then moved inside the host, so
-    // the handle sits against the element it resizes rather than beside it. The
-    // component stays attached to the view hierarchy either way, which is what
-    // keeps its own change detection and teardown working.
+    // Nothing else owns this node's placement now, so it stays where it is put:
+    // against the edge of the element it resizes.
     this._renderer.appendChild(this._element, this._handle.location.nativeElement);
+
+    // A component created this way belongs to no view tree, and a view nothing
+    // checks never applies its own bindings — the placement class and the ARIA
+    // values `_syncHandle` writes would never reach the DOM. Attaching it to the
+    // application is what puts it back in a change detection pass.
+    this._appRef.attachView(this._handle.hostView);
 
     this._wireHandle();
 
@@ -112,6 +133,7 @@ export class FsResizeEdgeDirective implements OnInit, OnDestroy {
   }
 
   public ngOnDestroy(): void {
+    this._appRef.detachView(this._handle.hostView);
     this._handle.destroy();
   }
 
