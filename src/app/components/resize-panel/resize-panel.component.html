@@ -16,9 +16,10 @@
   </fs-resize-handle>
 }
 
-<!-- The content scrolls in here rather than on the host, because the handle is
-     absolutely positioned against the host — inside a scroll container it would
-     scroll away from the seam it marks. -->
+<!-- The content sits in here rather than on the host, because the handle is
+     absolutely positioned against the host. This box sets no overflow of its own:
+     scrolling is the projected content's call, and a scroll container here would
+     scroll the handle away from the seam it marks. -->
 <div class="fs-resize-panel-content">
   <ng-content></ng-content>
 </div>
